@@ -6,8 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 
+  // mapbox
   <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js'></script>
   <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css' rel='stylesheet' />
+
+
+  // turf
+  <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
 
   <style>
     body {
@@ -31,80 +36,294 @@
 
 <script>
   mapboxgl.accessToken = 'pk.eyJ1IjoiaG9va2FobG9jYXRvciIsImEiOiI5WnJEQTBBIn0.DrAlI7fhFaYr2RcrWWocgw';
+
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v11',
+    style: 'mapbox://styles/mapbox/streets-v8',
     center: [83.6691851, 53.3880408],
     zoom: 11
   });
 
-  map.on('load', () => {
-    map.addSource('consumers', {
-      type: 'geojson',
-      data: './consumers.geojson'
-    });
-    // add heatmap layer here
-    map.addLayer(
-  {
-    id: 'consumers-heat',
-    type: 'heatmap',
-    source: 'consumers',
-    maxzoom: 15,
-    paint: {
-      // increase weight as diameter breast height increases
-      'heatmap-weight': {
-        property: 'Тип наркотика',
-        type: 'exponential',
-        stops: [
-          [1, 0],
-          [4, 1]
-        ]
-      },
-      // increase intensity as zoom level increases
-      'heatmap-intensity': {
-        stops: [
-          [11, 1],
-          [15, 3]
-        ]
-      },
-      // assign color values be applied to points depending on their density
-      'heatmap-color': [
-        'interpolate',
-        ['linear'],
-        ['heatmap-density'],
-        0,
-        'rgba(236,222,239,0)',
-        0.2,
-        'rgb(208,209,230)',
-        0.4,
-        'rgb(166,189,219)',
-        0.6,
-        'rgb(103,169,207)',
-        0.8,
-        'rgb(28,144,153)'
-      ],
-      // increase radius as zoom increases
-      'heatmap-radius': {
-        stops: [
-          [11, 15],
-          [15, 20]
-        ]
-      },
-      // decrease opacity to transition into the circle layer
-      'heatmap-opacity': {
-        default: 1,
-        stops: [
-          [14, 1],
-          [15, 0]
-        ]
-      }
-    }
-  },
-  'waterway-label'
-);
 
-    // add circle layer here
-  });
+  fetch('./consumers.geojson')
+    .then((res) => res.json())
+    .then((geojson) => {
+
+      // let optionsBarnaul = {
+      //   bbox: [
+      //     53.45026338746155, 83.92322602716382,
+      //     53.45026338746155]
+      // }
+
+      // let polygonBarnaul = turf.polygon([[
+      //   [
+      //     83.50993447263414,
+      //     53.45026338746155
+      //   ],
+      //   [
+      //     83.50993447263414,
+      //     53.256472716168446
+      //   ],
+      //   [
+      //     83.92322602716382,
+      //     53.256472716168446
+      //   ],
+      //   [
+      //     83.92322602716382,
+      //     53.45026338746155
+      //   ],
+      //   [
+      //     83.50993447263414,
+      //     53.45026338746155
+      //   ]
+      // ]])
+
+      // let optionsVoronoi = {
+      //   bbox: [
+      //     83.45587660757661,
+      //     53.251160502170904,
+      //     83.94771924922009,
+      //     53.468268206216976
+      //   ]
+      // }
+
+      let scaledGeojson = turf.transformScale(geojson, 1.5)
+
+      let bbox = turf.bbox(scaledGeojson)
+      console.log(bbox)
+
+      // let geojsonResult = turf.pointsWithinPolygon(geojson, polygonBarnaul);
+
+      // console.log(geojson)
+      // console.log(geojsonResult)
+
+      // let optionRandom = { bbox: [60, 20, 70, 50] }
+
+      // let points = turf.randomPoint(200, { bbox: bbox });
+
+      // console.log('points')
+      // console.log(points)
+
+      // let gridResult = 0
+
+      let array = []
+
+      turf.featureEach(geojson, function (point) {
+        // point.properties.solRad = Math.random() * 5;
+        point.properties.solRad = 1
+
+        let temp = point.properties["Тип-наркотика"]
+        let status = 0
+
+        array.push(turf.point(point.geometry.coordinates))
+
+        console.log(temp)
+
+        if (temp === undefined) { temp = 2 }
+
+        point.properties.typeDrug = temp
+      })
+
+      console.log('array coordinates')
+      console.log(array)
+
+      var multiPoint = turf.multiPoint(array);
+
+      // turf.cleanCoords(multiPoint.geometry.coordinates)
+
+
+
+      let collection = turf.featureCollection(array)
+
+      console.log('collection')
+      console.log(collection)
+
+      // .then(data => {
+      //   gridResult = turf.interpolate(data, 20, options)
+      // })
+
+      let options = {
+        gridType: 'hex',
+        property: 'area',
+        weight: 10
+      }
+
+
+      console.log('geojson')
+      console.log(geojson)
+
+
+
+      let gridVoronoi = turf.voronoi(collection, { "bbox": bbox })
+
+      console.log('gridVoronoi')
+      console.log(gridVoronoi)
+
+      let max = 0
+      let min = 500000
+
+      // gridVoronoi.features.forEach((current, index) => {
+      //   current.properties.area = 500
+      //   geojson.features[index].properties.area = 300
+      // })
+
+      turf.featureEach(collection, function (current, index) {
+        console.log(index)
+        console.log(gridVoronoi.features[index])
+
+        let area = 0
+
+        if (!gridVoronoi.features[index]) {
+          area = 0
+        } else {
+          area = turf.area(gridVoronoi.features[index])
+        }
+
+
+        console.log(area)
+        // let area = 500
+        current.properties.area = area
+        // geojson.features[index].properties.area = area
+
+        if (area > max) {
+          max = area
+        }
+
+        if (min > area && area != 0) {
+          min = area
+        }
+
+      })
+
+      console.log(min, max)
+      console.log(geojson)
+
+      let grid = turf.interpolate(collection , 0.15, options)
+
+
+
+      // const max = grid.features.reduce((a, b) => Math.max(a.properties.typeDrug, b.properties.typeDrug), -Infinity);
+      // console.log(max)
+
+      // console.log(grid)
+
+      map.on('load', () => {
+
+        map.addSource('consumersInter', {
+          type: 'geojson',
+          data: grid
+        })
+
+        map.addSource('consumers', {
+          type: 'geojson',
+          data: './consumers.geojson'
+        });
+
+        map.addLayer(
+          {
+            id: 'hexgrid',
+            type: 'fill',
+            source: 'consumersInter',
+            // paint: {
+            //   'fill-color': '#B2FDD8'
+            // }
+            // },
+            paint: {
+              'fill-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'area'],
+                min,
+                '#FD1864',
+                (max + min) /32,
+                '#F70000',
+                (max + min) /16,
+                '#FD5918',
+                (max + min) /8,
+                '#FF783A',
+                (max + min) /4,
+                '#F3AB27',
+                // 1000,
+                // '#B2FDD8',
+                // // 'rgb(208,209,230)',
+                // 2000,
+                (max + min) /2,
+                '#E9FF85',
+                // // 'rgb(166,189,219)',
+                // 3000,
+                // '#83F139',
+                // // 'rgb(103,169,207)',
+                max,
+                '#00B800'
+              ],
+              'fill-opacity': 0.350
+            }
+          }
+        )
+
+        map.addLayer(
+          {
+            id: 'consumers-heat',
+            type: 'heatmap',
+            source: 'consumers',
+            maxzoom: 15,
+            paint: {
+              // increase weight as diameter breast height increases
+              'heatmap-weight': {
+                property: 'Тип наркотика',
+                type: 'exponential',
+                stops: [
+                  [1, 0],
+                  [4, 1]
+                ]
+              },
+              // increase intensity as zoom level increases
+              'heatmap-intensity': {
+                stops: [
+                  [11, 1],
+                  [15, 3]
+                ]
+              },
+              // assign color values be applied to points depending on their density
+              'heatmap-color': [
+                'interpolate',
+                ['linear'],
+                ['heatmap-density'],
+                0,
+                'rgba(236,222,239,0)',
+                0.2,
+                'rgb(208,209,230)',
+                0.4,
+                'rgb(166,189,219)',
+                0.6,
+                'rgb(103,169,207)',
+                0.8,
+                'rgb(28,144,153)'
+              ],
+              // increase radius as zoom increases
+              'heatmap-radius': {
+                stops: [
+                  [11, 15],
+                  [15, 20]
+                ]
+              },
+              // decrease opacity to transition into the circle layer
+              'heatmap-opacity': {
+                default: 1,
+                stops: [
+                  [14, 1],
+                  [15, 0]
+                ]
+              }
+            }
+          },
+          'waterway-label'
+        );
+
+      })
+
+    })
+
 
    // we will add more code here in the next steps
 
