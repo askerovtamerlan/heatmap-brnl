@@ -145,7 +145,7 @@
       let options = {
         gridType: 'hex',
         property: 'area',
-        weight: 10
+        weight: 9
       }
 
 
@@ -167,6 +167,8 @@
       //   geojson.features[index].properties.area = 300
       // })
 
+      let features = []
+
       turf.featureEach(collection, function (current, index) {
         console.log(index)
         console.log(gridVoronoi.features[index])
@@ -174,9 +176,14 @@
         let area = 0
 
         if (!gridVoronoi.features[index]) {
+
           area = 0
         } else {
           area = turf.area(gridVoronoi.features[index])
+
+          gridVoronoi.features[index].properties.area = area
+          
+          features.push(gridVoronoi.features[index])
         }
 
 
@@ -195,10 +202,15 @@
 
       })
 
+      let newVoronoi = {
+        "type": "FeatureCollection",
+        "features": features
+      }
+
       console.log(min, max)
       console.log(geojson)
 
-      let grid = turf.interpolate(collection , 0.15, options)
+      let grid = turf.interpolate(collection , 0.1, options)
 
 
 
@@ -233,30 +245,26 @@
                 'interpolate',
                 ['linear'],
                 ['get', 'area'],
-                min,
-                '#FD1864',
-                (max + min) /32,
-                '#F70000',
-                (max + min) /16,
-                '#FD5918',
-                (max + min) /8,
+                10000,
+                '#8B05AC',
+                100000,
+                '#9905AC',
+                200000,
+                '#E74848',
+                300000,
                 '#FF783A',
-                (max + min) /4,
-                '#F3AB27',
-                // 1000,
-                // '#B2FDD8',
-                // // 'rgb(208,209,230)',
-                // 2000,
-                (max + min) /2,
-                '#E9FF85',
-                // // 'rgb(166,189,219)',
-                // 3000,
-                // '#83F139',
-                // // 'rgb(103,169,207)',
-                max,
-                '#00B800'
+                400000,
+                '#27A1F3',
+                500000,
+                '#85DCFF',
+                1000000,
+                '#B2FDD8',
+                10000000,
+                '#B2FDC2',
+                30000000,
+                '#DCFFBF'
               ],
-              'fill-opacity': 0.350
+              'fill-opacity': 0.550
             }
           }
         )
